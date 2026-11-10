@@ -1,0 +1,5 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+0,2,,,0,0,0,0,0,0,
+74.00,79.00,指導,高橋選手に指導。消極的試合姿勢との説明。,0,0,0,0,0,1,
+142.00,146.00,指導,高橋選手に2つ目の指導。,0,0,0,0,0,2,
+287.00,305.00,指導,双方に指導。高橋選手は累積3つ目となり決着。,0,0,1,0,0,3,white

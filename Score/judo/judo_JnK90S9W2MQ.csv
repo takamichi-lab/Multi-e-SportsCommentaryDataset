@@ -1,0 +1,6 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+101,103,,,0,0,0,0,0,0,
+121.36,125.60,指導,取り組まないことによる両者指導。,0,0,1,0,0,1,
+233.12,236.62,指導,田中選手に2つ目の指導。,0,0,1,0,0,2,
+284.62,290.62,指導,手立た選手（テラダ選手の表記揺れ）に指導。,0,0,2,0,0,2,
+620.62,623.62,指導,テラダ選手に3つ目の指導。,0,0,3,0,0,2,blue

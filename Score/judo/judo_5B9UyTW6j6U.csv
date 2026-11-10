@@ -1,0 +1,5 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+114,116,,,0,0,0,0,0,0,
+165.48,172.48,指導,丸山選手に指導。,0,0,0,0,0,1,
+312.48,317.48,指導,あべ，まるやま選手に指導。累積2つ。,0,0,1,0,0,2,
+630.48,644.48,指導,指導3による決着。アベ選手が勝利。,0,0,1,0,0,3,white

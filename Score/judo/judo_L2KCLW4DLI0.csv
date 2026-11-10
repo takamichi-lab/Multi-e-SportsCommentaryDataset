@@ -1,0 +1,5 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+102,104,,,0,0,0,0,0,0,
+280.68,290.68,指導,両者指導。,0,0,1,0,0,1,
+495.68,500.68,指導,指導が追加されたとの報告。,0,0,2,0,0,1,
+610.68,616.68,一本,永瀬選手の一本勝ちとの結果報告。,1,0,2,0,0,1,white

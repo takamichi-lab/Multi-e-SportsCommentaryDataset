@@ -1,0 +1,5 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+95,97,,,0,0,0,0,0,0,
+150.38,160.38,指導,両者指導。,0,0,1,0,0,1,
+255.38,261.38,指導,つかモト選手に2つ目の指導。,0,0,2,0,0,1,
+836.26,840.26,指導,つかもと選手に場外による3つ目の指導。試合終了。,0,0,3,0,0,1,blue

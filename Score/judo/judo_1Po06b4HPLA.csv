@@ -1,0 +1,6 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+0,2,,,0,0,0,0,0,0,
+82.50,89.50,指導,島田選手側に指導。,0,0,0,0,0,1,
+147.50,160.50,指導,吉田選手側に取り組まないことによる指導。,0,0,1,0,0,1,
+243.50,250.50,指導,島田選手側に指導。,0,0,1,0,0,2,
+615.50,619.50,指導,しまた選手に3つ目の指導。吉田選手の勝利につながる判定。,0,0,1,0,0,3,white

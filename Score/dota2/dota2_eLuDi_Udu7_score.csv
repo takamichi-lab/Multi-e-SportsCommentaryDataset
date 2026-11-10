@@ -1,0 +1,5 @@
+﻿game_id,segment_id,segment_start_sec,segment_end_sec,video_time_sec,score_phase,left_score,right_score
+1,1,3510,6644,6633.4000667334,score_before,0,0
+1,1,3510,6644,6633.4000667334,score_after,1,0
+1,2,11330,13822,13802.76943610277,score_before,0,0
+1,2,11330,13822,13802.76943610277,score_after,2,0

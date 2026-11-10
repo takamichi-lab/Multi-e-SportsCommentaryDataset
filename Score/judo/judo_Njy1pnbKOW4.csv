@@ -1,0 +1,5 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+108,110,,,0,0,0,0,0,0,
+452.84,463.84,指導,まべくら選手（ナベクラ選手の表記揺れ）に指導。この試合初めて。,0,0,1,0,0,0,
+747.84,756.84,指導,2つ目の指導。試合継続。,0,0,2,0,0,0,
+906.84,923.84,指導,ホリカワ選手とナベクラ選手の双方に指導。累積はナベクラ側3、ホリカワ側1となり決着。,0,0,3,0,0,1,blue

@@ -1,0 +1,4 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+99,101,,,0,0,0,0,0,0,
+216.00,220.00,指導,ハマダ選手に指導を1つ。,0,0,1,0,0,0,
+400.00,407.00,一本,ハマダ選手が横四方固めの一本で勝利。,1,0,1,0,0,0,white

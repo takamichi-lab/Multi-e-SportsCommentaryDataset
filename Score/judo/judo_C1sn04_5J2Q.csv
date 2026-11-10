@@ -1,0 +1,5 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+104,106,,,0,0,0,0,0,0,
+198,203,指導,両者指導,0,0,1,0,0,1,
+403,410,指導,両者指導,0,0,2,0,0,2,
+703,711,指導,田嶋に3つ目の指導,0,0,2,0,0,3,white

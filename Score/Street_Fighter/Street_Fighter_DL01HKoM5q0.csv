@@ -1,0 +1,9 @@
+video_start_sec,video_end_sec,game_id,segment_id,match_id,record,left_score,right_score
+72,107,1,1,1,op_10,0,0
+107,165,1,1,2,op_10,0,0
+206,274,1,2,1,even_11,1,0
+274,346,1,2,2,even_11,1,0
+388,434,1,3,1,fin_21,1,1
+434,476,1,3,2,fin_21,1,1
+476,520,1,3,3,fin_21,1,1
+520,523,1,3,3,fin_21,2,1

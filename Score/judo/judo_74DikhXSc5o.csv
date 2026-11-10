@@ -1,0 +1,5 @@
+﻿video_start_sec,video_end_sec,event,content,white_ippon,white_wazaari,white_shido,blue_ippon,blue_wazaari,blue_shido,winner
+114,116,,,0,0,0,0,0,0,
+168.96,177.96,指導,児玉選手に1つ目の指導。,0,0,1,0,0,0,
+229.96,234.96,指導,児玉，富田両者の指導。,0,0,2,0,0,1,
+338.96,345.96,指導,指導3によって、とみた選手が勝利。,0,0,3,0,0,1,blue
