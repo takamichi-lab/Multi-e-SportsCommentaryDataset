@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YouTube・CSVグラフビューア</title>
+<style>:root{color-scheme:dark;font:14px system-ui,sans-serif;background:#101820;color:#e4edf5;--border:#304356;--muted:#9eb0c2;--accent:#85e0cb}*{box-sizing:border-box}body{margin:0 auto;padding:28px;max-width:1700px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px}h1{font-size:26px;margin:8px 0}h2{font-size:18px;margin:0}p{line-height:1.7;color:var(--muted)}a{color:var(--accent)}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--accent)}.panel{background:#192633;border:1px solid var(--border);border-radius:12px;padding:20px}.inputs{display:grid;grid-template-columns:1fr 2fr auto;gap:18px;align-items:end}label{display:flex;flex-direction:column;gap:8px;color:var(--muted);font-size:13px}input,select,button{font:inherit;padding:10px;border:1px solid #435a70;border-radius:7px;background:#203141;color:#e4edf5;max-width:100%}button{cursor:pointer}button:hover:enabled{background:#354e63}button:disabled{opacity:.4;cursor:default}#status{min-height:25px;white-space:pre-wrap;color:var(--accent)}main{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(340px,1fr);gap:20px}.player{align-self:start;position:sticky;top:15px}video{width:100%;max-height:60vh;background:#000;border-radius:7px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.toolbar label{flex-direction:row;align-items:center}.toolbar input[type=number]{width:100px}.hint,.paths{font-size:12px;line-height:1.7;color:var(--muted)}.paths{overflow-wrap:anywhere}.time-strip{display:flex;gap:25px;padding-bottom:18px;border-bottom:1px solid var(--border)}small{color:var(--muted)}strong{display:block;font-size:22px;margin-top:5px;font-variant-numeric:tabular-nums}.badge{display:inline-block;padding:7px 12px;border-radius:20px;background:#25434d;color:var(--accent);margin:18px 0}.badge.outside{background:#443b2e;color:#f1cd8a}.card{border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}.card h3{margin:0 0 10px;font-size:14px;color:var(--accent)}dl{display:grid;grid-template-columns:minmax(110px,1fr) minmax(0,1.6fr);gap:7px 12px;margin:0}dt{color:var(--muted);overflow-wrap:anywhere}dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}.observed{font-size:12px;color:var(--muted);margin:10px 0 0}.explanation,.raw{margin-top:20px}summary{cursor:pointer}#ranges{max-height:220px;overflow:auto;line-height:1.9}#warnings{color:#f1cd8a;white-space:pre-wrap}.section-title{display:flex;justify-content:space-between;gap:15px;align-items:center}.section-title label{flex-direction:row;align-items:center}.table-wrap{overflow:auto;max-height:470px;margin-top:15px}table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}th,td{padding:10px 13px;border-bottom:1px solid var(--border);text-align:left;max-width:400px;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;background:#293c4e}tbody tr{cursor:pointer}tbody tr.active{background:#225e63}tbody tr:hover{background:#304a5c}tr:focus-visible{outline:2px solid var(--accent)}@media(max-width:950px){body{padding:15px}main{grid-template-columns:1fr}.player{position:static}.inputs{grid-template-columns:1fr 1fr}.wide{grid-column:span 1}header{align-items:start}.time-strip strong{font-size:18px}}@media(max-width:550px){.inputs{grid-template-columns:1fr}header{flex-direction:column}dl{grid-template-columns:1fr 1.5fr}}
+
+#cards{max-height:65vh;overflow:auto;padding-right:4px}
+
+.workspace{min-width:0}.workspace .player{position:static}.charts{margin-top:20px}.current{position:sticky;top:15px;align-self:start}.plot-panel{margin-top:22px;border-top:1px solid var(--border);padding-top:16px}.plot-panel h3{font-size:15px;margin:0 0 12px}.plot-panel svg{display:block;width:100%;height:auto;overflow:visible}.axis-label{fill:#a9bdcd;font:12px system-ui,sans-serif}.plot-legend{display:flex;gap:8px 18px;flex-wrap:wrap;color:#c5d4e0;font-size:12px;margin-bottom:10px}.plot-legend span:before{content:'';display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%;background:var(--series-color)}.plot-point{cursor:pointer;transition:stroke-width .1s}.plot-point:hover,.plot-point:focus-visible{stroke:white;stroke-width:3;outline:none}.plot-point.selected{stroke:white;stroke-width:2.2}#plot-metrics{display:flex;flex-wrap:wrap;gap:12px 18px;border:1px solid var(--border);border-radius:8px;padding:12px}#plot-metrics label{flex-direction:row;align-items:center}#plot-metrics input{margin:0}.plot-controls select{max-width:230px}.plot-controls input[type=number]{width:125px}#plot-readout{min-height:24px;color:var(--accent);font-size:12px}.charts .hint{margin-top:8px}.plot-series{stroke-linejoin:round}#cards{max-height:72vh}@media(max-width:950px){.current{position:static;grid-row:1}.workspace{grid-row:2}#cards{max-height:260px}}
+
+/* Give every chart the full page width below the video and information. */
+main>.charts{grid-column:1 / -1;margin-top:0;min-width:0}
+.current{position:static}
+@media(max-width:950px){main>.charts{grid-row:3}}
+
+#youtube-host iframe{width:100%;aspect-ratio:16/9;height:auto;min-height:200px;border:0;border-radius:7px}#youtube-name{min-width:240px}</style>
+
+</head>
+<body>
+<header><div><span class="eyebrow">YOUTUBE ANNOTATION VIEWER</span><h1>YouTube動画とCSVを確認</h1><p>スコア・投票率などの点をクリックすると、埋め込み動画と横の情報がその時刻に移動します。動画ファイルは不要です。CSVはローカルから読み込みます。</p></div></header>
+<section class="panel inputs" aria-label="動画の選択">
+ <label>競技<select id="sport"></select></label>
+ <label class="wide">動画<select id="dataset"></select></label>
+ <button id="reload">一覧を再表示</button>
+ <label>動画ファイル名（拡張子は省略可）<input id="youtube-name" placeholder="Baseball_u23ftPzFsMo.mp4"></label><button id="youtube-apply">動画名から開く</button>
+ <label>手元のCSVを指定<input type="file" id="csv-file" accept=".csv,text/csv"></label>
+ <label>手元CSVの時刻単位<select id="units"><option value="1">秒</option><option value="0.001">ミリ秒</option></select></label>
+</section>
+<p id="status" role="status" aria-live="polite"></p>
+<main>
+ <div class="workspace">
+ <section class="panel player">
+  <div id="youtube-host"></div><p><a id="youtube-link" target="_blank" rel="noopener" hidden>YouTubeで開く</a></p><p id="youtube-status" class="hint" role="status"></p>
+  <div class="toolbar"><button id="first">最初の情報へ</button><button id="previous">前の時刻</button><button id="next">次の時刻</button><label>速度<select id="speed"><option>0.5</option><option selected>1</option><option>1.5</option><option>2</option></select></label><label>時刻補正（秒）<input type="number" id="offset" value="0" step="0.1"></label></div>
+  <p class="hint">CSV参照時刻 = 動画時刻 + 補正値。元動画は通常0秒です。</p>
+  <div class="paths" id="paths"></div>
+ </section>
+
+ </div>
+ <section class="panel current">
+  <div class="time-strip"><div><small>動画時刻</small><strong id="video-time">00:00.000</strong></div><div><small>CSV参照時刻</small><strong id="csv-time">00:00.000</strong></div></div>
+  <div id="badge" class="badge">CSV未読込</div>
+  <div id="cards"><p>動画を選択してください。</p></div>
+ </section>
+ <section class="panel charts" aria-label="時系列グラフ">
+  <h2>時系列グラフ</h2>
+  <p class="hint">点をクリック、またはフォーカスしてEnterで動画と情報を同期。線は有効区間内だけをつなぎ、空欄は線を途切れさせます。横軸はCSV参照時刻です。</p>
+  <fieldset id="plot-metrics"><legend>表示する項目</legend></fieldset>
+  <div class="toolbar plot-controls">
+   <label>表示範囲<select id="plot-range"><option value="all">全体</option></select></label>
+   <label>開始（秒）<input id="plot-start" type="number" min="0" step="0.001"></label>
+   <label>終了（秒）<input id="plot-end" type="number" min="0" step="0.001"></label>
+   <button id="plot-apply">範囲を適用</button><button id="plot-reset">全体へ</button>
+  </div>
+  <p id="plot-readout" role="status">点にカーソルを合わせると時刻と値を確認できます。</p>
+  <div id="plot-panels"></div>
+ </section>
+</main>
+<section class="panel explanation"><details><summary>時刻の適用ルール・有効区間</summary><p id="rule"></p><p id="bounds-source"></p><p class="hint">空欄・nanは「未取得」と表示します。CSV観測時刻から求めた境界は、実際の試合開始・終了とずれる場合があります。</p><ul id="ranges"></ul><div id="warnings"></div></details></section>
+<section class="panel raw" hidden>
+ <div class="section-title"><h2>CSVの記録 <small id="row-count"></small></h2><label><input type="checkbox" id="follow" checked> 現在行に追従</label></div>
+ <p class="hint">行をクリック、またはEnterで時刻移動。区間型は開始時刻、変更前は区間開始、変更後はイベント時刻へ移動します。</p>
+ <div class="toolbar"><button id="page-prev">前のページ</button><span id="page-label"></span><button id="page-next">次のページ</button></div>
+ <div class="table-wrap"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div>
+</section>
+<script>
+window.youtubeCatalog = [{"id": "Score/Apex/Apex_gemma4_squads_csv/Apex_-WW73aNl9So.mp4_match_squads.csv", "sport": "Apex", "name": "Apex_-WW73aNl9So", "csv": "Score/Apex/Apex_gemma4_squads_csv/Apex_-WW73aNl9So.mp4_match_squads.csv", "video": "Apex/Apex_mp4/Apex_-WW73aNl9So.mp4"}, {"id": "Score/Apex/Apex_gemma4_squads_csv/Apex_3Qjog3M437Y.mp4_match_squads.csv", "sport": "Apex", "name": "Apex_3Qjog3M437Y", "csv": "Score/Apex/Apex_gemma4_squads_csv/Apex_3Qjog3M437Y.mp4_match_squads.csv", "video": "Apex/Apex_mp4/Apex_3Qjog3M437Y.mp4"}, {"id": "Score/Apex/Apex_gemma4_squads_csv/Apex_FeeZiYPqX4s.mp4_match_squads.csv", "sport": "Apex", "name": "Apex_FeeZiYPqX4s", "csv": "Score/Apex/Apex_gemma4_squads_csv/Apex_FeeZiYPqX4s.mp4_match_squads.csv", "video": "Apex/Apex_mp4/Apex_FeeZiYPqX4s.mp4"}, {"id": "Score/Apex/Apex_gemma4_squads_csv/Apex_n2dEvup0B8o.mp4_match_squads.csv", "sport": "Apex", "name": "Apex_n2dEvup0B8o", "csv": "Score/Apex/Apex_gemma4_squads_csv/Apex_n2dEvup0B8o.mp4_match_squads.csv", "video": "Apex/Apex_mp4/Apex_n2dEvup0B8o.mp4"}, {"id": "Score/Apex/Apex_gemma4_squads_csv/Apex_y-THJmKrTnE.mp4_match_squads.csv", "sport": "Apex", "name": "Apex_y-THJmKrTnE", "csv": "Score/Apex/Apex_gemma4_squads_csv/Apex_y-THJmKrTnE.mp4_match_squads.csv", "video": "Apex/Apex_mp4/Apex_y-THJmKrTnE.mp4"}, {"id": "Score/Apex/Apex_gemma4_squads_csv/Y6qqYmPkAGk.mp4_match_squads.csv", "sport": "Apex", "name": "Y6qqYmPkAGk", "csv": "Score/Apex/Apex_gemma4_squads_csv/Y6qqYmPkAGk.mp4_match_squads.csv", "video": "Apex/Apex_mp4/Y6qqYmPkAGk.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_4IN4Zk1CrvU.csv", "sport": "Baseball", "name": "Baseball_4IN4Zk1CrvU", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_4IN4Zk1CrvU.csv", "video": "Baseball/Baseball_mp4/Baseball_4IN4Zk1CrvU.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_8CfA7uimezw.csv", "sport": "Baseball", "name": "Baseball_8CfA7uimezw", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_8CfA7uimezw.csv", "video": "Baseball/Baseball_mp4/Baseball_8CfA7uimezw.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_K6_HHOVb0Tk.csv", "sport": "Baseball", "name": "Baseball_K6_HHOVb0Tk", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_K6_HHOVb0Tk.csv", "video": "Baseball/Baseball_mp4/Baseball_K6_HHOVb0Tk.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_R7JIlW7E0mo.csv", "sport": "Baseball", "name": "Baseball_R7JIlW7E0mo", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_R7JIlW7E0mo.csv", "video": "Baseball/Baseball_mp4/Baseball_R7JIlW7E0mo.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_Zzxf38jBKqQ.csv", "sport": "Baseball", "name": "Baseball_Zzxf38jBKqQ", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_Zzxf38jBKqQ.csv", "video": "Baseball/Baseball_mp4/Baseball_Zzxf38jBKqQ.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_cq8zkREAs9I.csv", "sport": "Baseball", "name": "Baseball_cq8zkREAs9I", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_cq8zkREAs9I.csv", "video": "Baseball/Baseball_mp4/Baseball_cq8zkREAs9I.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_d9B1-0UvF6M.csv", "sport": "Baseball", "name": "Baseball_d9B1-0UvF6M", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_d9B1-0UvF6M.csv", "video": "Baseball/Baseball_mp4/Baseball_d9B1-0UvF6M.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_jlLOaF_f46w.csv", "sport": "Baseball", "name": "Baseball_jlLOaF_f46w", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_jlLOaF_f46w.csv", "video": "Baseball/Baseball_mp4/Baseball_jlLOaF_f46w.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_lNY9D9npcbY.csv", "sport": "Baseball", "name": "Baseball_lNY9D9npcbY", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_lNY9D9npcbY.csv", "video": "Baseball/Baseball_mp4/Baseball_lNY9D9npcbY.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_s65X2VzZLIY.csv", "sport": "Baseball", "name": "Baseball_s65X2VzZLIY", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_s65X2VzZLIY.csv", "video": "Baseball/Baseball_mp4/Baseball_s65X2VzZLIY.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_soA7fp169kQ.csv", "sport": "Baseball", "name": "Baseball_soA7fp169kQ", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_soA7fp169kQ.csv", "video": "Baseball/Baseball_mp4/Baseball_soA7fp169kQ.mp4"}, {"id": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_u23ftPzFsMo.csv", "sport": "Baseball", "name": "Baseball_u23ftPzFsMo", "csv": "Score/Baseball/Baseball_gemma4_csv_1003/Baseball_u23ftPzFsMo.csv", "video": "Baseball/Baseball_mp4/Baseball_u23ftPzFsMo.mp4"}, {"id": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_23GcXZK_ayk.csv", "sport": "League of Legends", "name": "League of Legends_23GcXZK_ayk", "csv": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_23GcXZK_ayk.csv", "video": "League of Legends/League of Legends_mp4/League of Legends_23GcXZK_ayk.mp4"}, {"id": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_2_rJXYKwXZ8.csv", "sport": "League of Legends", "name": "League of Legends_2_rJXYKwXZ8", "csv": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_2_rJXYKwXZ8.csv", "video": "League of Legends/League of Legends_mp4/League of Legends_2_rJXYKwXZ8.mp4"}, {"id": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_KgK9e1fC1Dg.csv", "sport": "League of Legends", "name": "League of Legends_KgK9e1fC1Dg", "csv": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_KgK9e1fC1Dg.csv", "video": "League of Legends/League of Legends_mp4/League of Legends_KgK9e1fC1Dg.mp4"}, {"id": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_URe8Zj0N8ng.csv", "sport": "League of Legends", "name": "League of Legends_URe8Zj0N8ng", "csv": "Score/League of Legends/League of Legends_gemma4_csv/League of Legends_URe8Zj0N8ng.csv", "video": "League of Legends/League of Legends_mp4/League of Legends_URe8Zj0N8ng.mp4"}, {"id": "Score/Legends of Runeterra/Legends of Runeterra_csv/Legends of Runeterra_CwgoD55dOs.csv", "sport": "Legends of Runeterra", "name": "Legends of Runeterra_CwgoD55dOs", "csv": "Score/Legends of Runeterra/Legends of Runeterra_csv/Legends of Runeterra_CwgoD55dOs.csv", "video": "Legends of Runeterra/Legends of Runeterra_mp4/Legends of Runeterra_CwgoD55dOs.mp4"}, {"id": "Score/Legends of Runeterra/Legends of Runeterra_csv/Legends of Runeterra_LQqNqKqbE1w.csv", "sport": "Legends of Runeterra", "name": "Legends of Runeterra_LQqNqKqbE1w", "csv": "Score/Legends of Runeterra/Legends of Runeterra_csv/Legends of Runeterra_LQqNqKqbE1w.csv", "video": "Legends of Runeterra/Legends of Runeterra_mp4/Legends of Runeterra_LQqNqKqbE1w.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_-FQJ1MegOwI/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_-FQJ1MegOwI", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_-FQJ1MegOwI/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_-FQJ1MegOwI.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_022O8B_8lhQ/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_022O8B_8lhQ", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_022O8B_8lhQ/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_022O8B_8lhQ.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_0MMPwXqxaC4/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_0MMPwXqxaC4", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_0MMPwXqxaC4/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_0MMPwXqxaC4.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_BhGqFmoIK9g/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_BhGqFmoIK9g", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_BhGqFmoIK9g/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_BhGqFmoIK9g.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_Fs2ZF8Bp1Yk/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_Fs2ZF8Bp1Yk", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_Fs2ZF8Bp1Yk/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_Fs2ZF8Bp1Yk.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_Ikw8SND2bew/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_Ikw8SND2bew", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_Ikw8SND2bew/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_Ikw8SND2bew.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_OpNjtqY1jzU/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_OpNjtqY1jzU", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_OpNjtqY1jzU/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_OpNjtqY1jzU.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_fMWo3kGD6Ws/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_fMWo3kGD6Ws", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_fMWo3kGD6Ws/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_fMWo3kGD6Ws.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_gP2JdeP6LdI/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_gP2JdeP6LdI", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_gP2JdeP6LdI/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_gP2JdeP6LdI.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_gnEPP6zod_o/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_gnEPP6zod_o", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_gnEPP6zod_o/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_gnEPP6zod_o.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_nchO1zEXiI0/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_nchO1zEXiI0", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_nchO1zEXiI0/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_nchO1zEXiI0.mp4"}, {"id": "Score/Poker/Poker_hand_analysis_v2/Poker_uFF0zv2L6qc/poker_cleaned_filtered.csv", "sport": "Poker", "name": "Poker_uFF0zv2L6qc", "csv": "Score/Poker/Poker_hand_analysis_v2/Poker_uFF0zv2L6qc/poker_cleaned_filtered.csv", "video": "Poker/Poker_mp4/Poker_uFF0zv2L6qc.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_-0-qYaYOuSU.csv", "sport": "Street_Fighter", "name": "Street_Fighter_-0-qYaYOuSU", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_-0-qYaYOuSU.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_-0-qYaYOuSU.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_8Y5tHbd-OW4.csv", "sport": "Street_Fighter", "name": "Street_Fighter_8Y5tHbd-OW4", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_8Y5tHbd-OW4.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_8Y5tHbd-OW4.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_8k9q3jUQbIk.csv", "sport": "Street_Fighter", "name": "Street_Fighter_8k9q3jUQbIk", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_8k9q3jUQbIk.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_8k9q3jUQbIk.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_8pSMc76Yuq8.csv", "sport": "Street_Fighter", "name": "Street_Fighter_8pSMc76Yuq8", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_8pSMc76Yuq8.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_8pSMc76Yuq8.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_DL01HKoM5q0.csv", "sport": "Street_Fighter", "name": "Street_Fighter_DL01HKoM5q0", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_DL01HKoM5q0.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_DL01HKoM5q0.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_FA4C0P8VTxc.csv", "sport": "Street_Fighter", "name": "Street_Fighter_FA4C0P8VTxc", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_FA4C0P8VTxc.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_FA4C0P8VTxc.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_KysNc1uI2YY.csv", "sport": "Street_Fighter", "name": "Street_Fighter_KysNc1uI2YY", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_KysNc1uI2YY.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_KysNc1uI2YY.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_V-M0hwZJfyM.csv", "sport": "Street_Fighter", "name": "Street_Fighter_V-M0hwZJfyM", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_V-M0hwZJfyM.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_V-M0hwZJfyM.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_XZIsLR7sihQ.csv", "sport": "Street_Fighter", "name": "Street_Fighter_XZIsLR7sihQ", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_XZIsLR7sihQ.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_XZIsLR7sihQ.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter__bg6tNy1MvI.csv", "sport": "Street_Fighter", "name": "Street_Fighter__bg6tNy1MvI", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter__bg6tNy1MvI.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter__bg6tNy1MvI.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_cYAgrJZPzUs.csv", "sport": "Street_Fighter", "name": "Street_Fighter_cYAgrJZPzUs", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_cYAgrJZPzUs.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_cYAgrJZPzUs.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_q_5PneKzZxU.csv", "sport": "Street_Fighter", "name": "Street_Fighter_q_5PneKzZxU", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_q_5PneKzZxU.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_q_5PneKzZxU.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_s2lkipnsK74.csv", "sport": "Street_Fighter", "name": "Street_Fighter_s2lkipnsK74", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_s2lkipnsK74.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_s2lkipnsK74.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_u9iJNWwBUMI.csv", "sport": "Street_Fighter", "name": "Street_Fighter_u9iJNWwBUMI", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_u9iJNWwBUMI.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_u9iJNWwBUMI.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_ujUbKf2bcb4.csv", "sport": "Street_Fighter", "name": "Street_Fighter_ujUbKf2bcb4", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_ujUbKf2bcb4.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_ujUbKf2bcb4.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_wHSrsR2ku5w.csv", "sport": "Street_Fighter", "name": "Street_Fighter_wHSrsR2ku5w", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_wHSrsR2ku5w.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_wHSrsR2ku5w.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_y88O04AqIAk.csv", "sport": "Street_Fighter", "name": "Street_Fighter_y88O04AqIAk", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_y88O04AqIAk.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_y88O04AqIAk.mp4"}, {"id": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_yO_qm2F4QIk.csv", "sport": "Street_Fighter", "name": "Street_Fighter_yO_qm2F4QIk", "csv": "Score/Street_Fighter/Street_Fighter_arrign_csv/Street_Fighter_yO_qm2F4QIk.csv", "video": "Street_Fighter/Street_Fighter_mp4/Street_Fighter_yO_qm2F4QIk.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_3oPjh3hZD6U_1.csv", "sport": "basketball", "name": "basketball_3oPjh3hZD6U", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_3oPjh3hZD6U_1.csv", "video": "basketball/basketball_mp4/basketball_3oPjh3hZD6U.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_Dm6sdgRyK-s_1.csv", "sport": "basketball", "name": "basketball_Dm6sdgRyK-s", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_Dm6sdgRyK-s_1.csv", "video": "basketball/basketball_mp4/basketball_Dm6sdgRyK-s.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_HNWWGBmTySs_1.csv", "sport": "basketball", "name": "basketball_HNWWGBmTySs", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_HNWWGBmTySs_1.csv", "video": "basketball/basketball_mp4/basketball_HNWWGBmTySs.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_JxCS8jhMmdA_1.csv", "sport": "basketball", "name": "basketball_JxCS8jhMmdA", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_JxCS8jhMmdA_1.csv", "video": "basketball/basketball_mp4/basketball_JxCS8jhMmdA.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_M77y93N39LI_1.csv", "sport": "basketball", "name": "basketball_M77y93N39LI", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_M77y93N39LI_1.csv", "video": "basketball/basketball_mp4/basketball_M77y93N39LI.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_Y-fSgF_V4ng_1.csv", "sport": "basketball", "name": "basketball_Y-fSgF_V4ng", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_Y-fSgF_V4ng_1.csv", "video": "basketball/basketball_mp4/basketball_Y-fSgF_V4ng.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_Z4gU7yYO6KE_1.csv", "sport": "basketball", "name": "basketball_Z4gU7yYO6KE", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_Z4gU7yYO6KE_1.csv", "video": "basketball/basketball_mp4/basketball_Z4gU7yYO6KE.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_deOFvfg3cYs_1.csv", "sport": "basketball", "name": "basketball_deOFvfg3cYs", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_deOFvfg3cYs_1.csv", "video": "basketball/basketball_mp4/basketball_deOFvfg3cYs.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_diC9iLJ9s3A_1.csv", "sport": "basketball", "name": "basketball_diC9iLJ9s3A", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_diC9iLJ9s3A_1.csv", "video": "basketball/basketball_mp4/basketball_diC9iLJ9s3A.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_ejWmzp5UG0U_1.csv", "sport": "basketball", "name": "basketball_ejWmzp5UG0U", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_ejWmzp5UG0U_1.csv", "video": "basketball/basketball_mp4/basketball_ejWmzp5UG0U.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_jdg5DnJcn0U_1.csv", "sport": "basketball", "name": "basketball_jdg5DnJcn0U", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_jdg5DnJcn0U_1.csv", "video": "basketball/basketball_mp4/basketball_jdg5DnJcn0U.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_owuSUraNSts_1.csv", "sport": "basketball", "name": "basketball_owuSUraNSts", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_owuSUraNSts_1.csv", "video": "basketball/basketball_mp4/basketball_owuSUraNSts.mp4"}, {"id": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_z8kUWZotEKw_1.csv", "sport": "basketball", "name": "basketball_z8kUWZotEKw", "csv": "Score/basketball/basketball_gemma4_0724_cut_csv_time_fixed4/basketball_z8kUWZotEKw_1.csv", "video": "basketball/basketball_mp4/basketball_z8kUWZotEKw.mp4"}, {"id": "Score/dota2/dota2_score_ocr_csv/dota2_6OQA2X5s_PA_score.csv", "sport": "dota2", "name": "dota2_6OQA2X5s_PA", "csv": "Score/dota2/dota2_score_ocr_csv/dota2_6OQA2X5s_PA_score.csv", "video": "dota2/dota2_mp4/dota2_6OQA2X5s_PA.mp4"}, {"id": "Score/dota2/dota2_score_ocr_csv/dota2_eKANGsyiwq4_score.csv", "sport": "dota2", "name": "dota2_eKANGsyiwq4", "csv": "Score/dota2/dota2_score_ocr_csv/dota2_eKANGsyiwq4_score.csv", "video": "dota2/dota2_mp4/dota2_eKANGsyiwq4.mp4"}, {"id": "Score/dota2/dota2_score_ocr_csv/dota2_eLuDi_Udu7_score.csv", "sport": "dota2", "name": "dota2_eLuDi_Udu7", "csv": "Score/dota2/dota2_score_ocr_csv/dota2_eLuDi_Udu7_score.csv", "video": "dota2/dota2_mp4/dota2_eLuDi_Udu7.mp4"}, {"id": "Score/hearthstone/hearthstone_csv/hearthstone_L8Yw5ZzEinM.csv", "sport": "hearthstone", "name": "hearthstone_L8Yw5ZzEinM", "csv": "Score/hearthstone/hearthstone_csv/hearthstone_L8Yw5ZzEinM.csv", "video": "hearthstone/hearthstone_mp4/hearthstone_L8Yw5ZzEinM.mp4"}, {"id": "Score/judo/judo_score_csv/judo_-ps6FcUbEd8.csv", "sport": "judo", "name": "judo_-ps6FcUbEd8", "csv": "Score/judo/judo_score_csv/judo_-ps6FcUbEd8.csv", "video": "judo/judo_mp4/judo_-ps6FcUbEd8.mp4"}, {"id": "Score/judo/judo_score_csv/judo_1Po06b4HPLA.csv", "sport": "judo", "name": "judo_1Po06b4HPLA", "csv": "Score/judo/judo_score_csv/judo_1Po06b4HPLA.csv", "video": "judo/judo_mp4/judo_1Po06b4HPLA.mp4"}, {"id": "Score/judo/judo_score_csv/judo_5B9UyTW6j6U.csv", "sport": "judo", "name": "judo_5B9UyTW6j6U", "csv": "Score/judo/judo_score_csv/judo_5B9UyTW6j6U.csv", "video": "judo/judo_mp4/judo_5B9UyTW6j6U.mp4"}, {"id": "Score/judo/judo_score_csv/judo_5Qh9NymU_Go.csv", "sport": "judo", "name": "judo_5Qh9NymU_Go", "csv": "Score/judo/judo_score_csv/judo_5Qh9NymU_Go.csv", "video": "judo/judo_mp4/judo_5Qh9NymU_Go.mp4"}, {"id": "Score/judo/judo_score_csv/judo_74DikhXSc5o.csv", "sport": "judo", "name": "judo_74DikhXSc5o", "csv": "Score/judo/judo_score_csv/judo_74DikhXSc5o.csv", "video": "judo/judo_mp4/judo_74DikhXSc5o.mp4"}, {"id": "Score/judo/judo_score_csv/judo_7qvGGVCkkHE.csv", "sport": "judo", "name": "judo_7qvGGVCkkHE", "csv": "Score/judo/judo_score_csv/judo_7qvGGVCkkHE.csv", "video": "judo/judo_mp4/judo_7qvGGVCkkHE.mp4"}, {"id": "Score/judo/judo_score_csv/judo_C1sn04_5J2Q.csv", "sport": "judo", "name": "judo_C1sn04_5J2Q", "csv": "Score/judo/judo_score_csv/judo_C1sn04_5J2Q.csv", "video": "judo/judo_mp4/judo_C1sn04_5J2Q.mp4"}, {"id": "Score/judo/judo_score_csv/judo_DiIRLe0nnkI.csv", "sport": "judo", "name": "judo_DiIRLe0nnkI", "csv": "Score/judo/judo_score_csv/judo_DiIRLe0nnkI.csv", "video": "judo/judo_mp4/judo_DiIRLe0nnkI.mp4"}, {"id": "Score/judo/judo_score_csv/judo_JnK90S9W2MQ.csv", "sport": "judo", "name": "judo_JnK90S9W2MQ", "csv": "Score/judo/judo_score_csv/judo_JnK90S9W2MQ.csv", "video": "judo/judo_mp4/judo_JnK90S9W2MQ.mp4"}, {"id": "Score/judo/judo_score_csv/judo_L2KCLW4DLI0.csv", "sport": "judo", "name": "judo_L2KCLW4DLI0", "csv": "Score/judo/judo_score_csv/judo_L2KCLW4DLI0.csv", "video": "judo/judo_mp4/judo_L2KCLW4DLI0.mp4"}, {"id": "Score/judo/judo_score_csv/judo_LY7pz8swyGU.csv", "sport": "judo", "name": "judo_LY7pz8swyGU", "csv": "Score/judo/judo_score_csv/judo_LY7pz8swyGU.csv", "video": "judo/judo_mp4/judo_LY7pz8swyGU.mp4"}, {"id": "Score/judo/judo_score_csv/judo_MmvSg-isFvo.csv", "sport": "judo", "name": "judo_MmvSg-isFvo", "csv": "Score/judo/judo_score_csv/judo_MmvSg-isFvo.csv", "video": "judo/judo_mp4/judo_MmvSg-isFvo.mp4"}, {"id": "Score/judo/judo_score_csv/judo_Njy1pnbKOW4.csv", "sport": "judo", "name": "judo_Njy1pnbKOW4", "csv": "Score/judo/judo_score_csv/judo_Njy1pnbKOW4.csv", "video": "judo/judo_mp4/judo_Njy1pnbKOW4.mp4"}, {"id": "Score/judo/judo_score_csv/judo_XTSjOlCP47Q.csv", "sport": "judo", "name": "judo_XTSjOlCP47Q", "csv": "Score/judo/judo_score_csv/judo_XTSjOlCP47Q.csv", "video": "judo/judo_mp4/judo_XTSjOlCP47Q.mp4"}, {"id": "Score/judo/judo_score_csv/judo_tvxU7KQ7Waw.csv", "sport": "judo", "name": "judo_tvxU7KQ7Waw", "csv": "Score/judo/judo_score_csv/judo_tvxU7KQ7Waw.csv", "video": "judo/judo_mp4/judo_tvxU7KQ7Waw.mp4"}, {"id": "Score/keiba/keiba_0SZmzxrFt6o.csv", "sport": "keiba", "name": "keiba_0SZmzxrFt6o", "csv": "Score/keiba/keiba_0SZmzxrFt6o.csv", "video": "keiba/keiba_mp4/keiba_0SZmzxrFt6o.mp4"}, {"id": "Score/keiba/keiba_43_3cKnb5Jg.csv", "sport": "keiba", "name": "keiba_43_3cKnb5Jg", "csv": "Score/keiba/keiba_43_3cKnb5Jg.csv", "video": "keiba/keiba_mp4/keiba_43_3cKnb5Jg.mp4"}, {"id": "Score/keiba/keiba_5PJYc4XmUS4.csv", "sport": "keiba", "name": "keiba_5PJYc4XmUS4", "csv": "Score/keiba/keiba_5PJYc4XmUS4.csv", "video": "keiba/keiba_mp4/keiba_5PJYc4XmUS4.mp4"}, {"id": "Score/keiba/keiba_5RK60-efZsY.csv", "sport": "keiba", "name": "keiba_5RK60-efZsY", "csv": "Score/keiba/keiba_5RK60-efZsY.csv", "video": "keiba/keiba_mp4/keiba_5RK60-efZsY.mp4"}, {"id": "Score/keiba/keiba_6vELUjFSHLw.csv", "sport": "keiba", "name": "keiba_6vELUjFSHLw", "csv": "Score/keiba/keiba_6vELUjFSHLw.csv", "video": "keiba/keiba_mp4/keiba_6vELUjFSHLw.mp4"}, {"id": "Score/keiba/keiba_AT1uB6zCptU.csv", "sport": "keiba", "name": "keiba_AT1uB6zCptU", "csv": "Score/keiba/keiba_AT1uB6zCptU.csv", "video": "keiba/keiba_mp4/keiba_AT1uB6zCptU.mp4"}, {"id": "Score/keiba/keiba_BFf4XRARnIw.csv", "sport": "keiba", "name": "keiba_BFf4XRARnIw", "csv": "Score/keiba/keiba_BFf4XRARnIw.csv", "video": "keiba/keiba_mp4/keiba_BFf4XRARnIw.mp4"}, {"id": "Score/keiba/keiba_E2PgReQom-s.csv", "sport": "keiba", "name": "keiba_E2PgReQom-s", "csv": "Score/keiba/keiba_E2PgReQom-s.csv", "video": "keiba/keiba_mp4/keiba_E2PgReQom-s.mp4"}, {"id": "Score/keiba/keiba_E7ZkMYq2mlQ.csv", "sport": "keiba", "name": "keiba_E7ZkMYq2mlQ", "csv": "Score/keiba/keiba_E7ZkMYq2mlQ.csv", "video": "keiba/keiba_mp4/keiba_E7ZkMYq2mlQ.mp4"}, {"id": "Score/keiba/keiba_GAtlAygV4NY.csv", "sport": "keiba", "name": "keiba_GAtlAygV4NY", "csv": "Score/keiba/keiba_GAtlAygV4NY.csv", "video": "keiba/keiba_mp4/keiba_GAtlAygV4NY.mp4"}, {"id": "Score/keiba/keiba_GV-s8ce3DSU.csv", "sport": "keiba", "name": "keiba_GV-s8ce3DSU", "csv": "Score/keiba/keiba_GV-s8ce3DSU.csv", "video": "keiba/keiba_mp4/keiba_GV-s8ce3DSU.mp4"}, {"id": "Score/keiba/keiba_IeBy1_sz5iM.csv", "sport": "keiba", "name": "keiba_IeBy1_sz5iM", "csv": "Score/keiba/keiba_IeBy1_sz5iM.csv", "video": "keiba/keiba_mp4/keiba_IeBy1_sz5iM.mp4"}, {"id": "Score/keiba/keiba_JaOqj98wtrU.csv", "sport": "keiba", "name": "keiba_JaOqj98wtrU", "csv": "Score/keiba/keiba_JaOqj98wtrU.csv", "video": "keiba/keiba_mp4/keiba_JaOqj98wtrU.mp4"}, {"id": "Score/keiba/keiba_MvdRNMJane4.csv", "sport": "keiba", "name": "keiba_MvdRNMJane4", "csv": "Score/keiba/keiba_MvdRNMJane4.csv", "video": "keiba/keiba_mp4/keiba_MvdRNMJane4.mp4"}, {"id": "Score/keiba/keiba_QeIDkskugxA.csv", "sport": "keiba", "name": "keiba_QeIDkskugxA", "csv": "Score/keiba/keiba_QeIDkskugxA.csv", "video": "keiba/keiba_mp4/keiba_QeIDkskugxA.mp4"}, {"id": "Score/keiba/keiba_TUfBn7yi0Lg.csv", "sport": "keiba", "name": "keiba_TUfBn7yi0Lg", "csv": "Score/keiba/keiba_TUfBn7yi0Lg.csv", "video": "keiba/keiba_mp4/keiba_TUfBn7yi0Lg.mp4"}, {"id": "Score/keiba/keiba_TnD6F4WSIYc.csv", "sport": "keiba", "name": "keiba_TnD6F4WSIYc", "csv": "Score/keiba/keiba_TnD6F4WSIYc.csv", "video": "keiba/keiba_mp4/keiba_TnD6F4WSIYc.mp4"}, {"id": "Score/keiba/keiba_WIcONq7iPYI.csv", "sport": "keiba", "name": "keiba_WIcONq7iPYI", "csv": "Score/keiba/keiba_WIcONq7iPYI.csv", "video": "keiba/keiba_mp4/keiba_WIcONq7iPYI.mp4"}, {"id": "Score/keiba/keiba_eG52w19vjXA.csv", "sport": "keiba", "name": "keiba_eG52w19vjXA", "csv": "Score/keiba/keiba_eG52w19vjXA.csv", "video": "keiba/keiba_mp4/keiba_eG52w19vjXA.mp4"}, {"id": "Score/keiba/keiba_jTkiFc6c-qw.csv", "sport": "keiba", "name": "keiba_jTkiFc6c-qw", "csv": "Score/keiba/keiba_jTkiFc6c-qw.csv", "video": "keiba/keiba_mp4/keiba_jTkiFc6c-qw.mp4"}, {"id": "Score/keiba/keiba_jbpU0g1Xe_4.csv", "sport": "keiba", "name": "keiba_jbpU0g1Xe_4", "csv": "Score/keiba/keiba_jbpU0g1Xe_4.csv", "video": "keiba/keiba_mp4/keiba_jbpU0g1Xe_4.mp4"}, {"id": "Score/keiba/keiba_l2zg9B6zbVk.csv", "sport": "keiba", "name": "keiba_l2zg9B6zbVk", "csv": "Score/keiba/keiba_l2zg9B6zbVk.csv", "video": "keiba/keiba_mp4/keiba_l2zg9B6zbVk.mp4"}, {"id": "Score/keiba/keiba_qGAGrAZqTSQ.csv", "sport": "keiba", "name": "keiba_qGAGrAZqTSQ", "csv": "Score/keiba/keiba_qGAGrAZqTSQ.csv", "video": "keiba/keiba_mp4/keiba_qGAGrAZqTSQ.mp4"}, {"id": "Score/keiba/keiba_wOtdqohsy2w.csv", "sport": "keiba", "name": "keiba_wOtdqohsy2w", "csv": "Score/keiba/keiba_wOtdqohsy2w.csv", "video": "keiba/keiba_mp4/keiba_wOtdqohsy2w.mp4"}, {"id": "Score/keiba/keiba_yMsQ4AC60xk.csv", "sport": "keiba", "name": "keiba_yMsQ4AC60xk", "csv": "Score/keiba/keiba_yMsQ4AC60xk.csv", "video": "keiba/keiba_mp4/keiba_yMsQ4AC60xk.mp4"}, {"id": "Score/keiba/keiba_zX09HpKNla8.csv", "sport": "keiba", "name": "keiba_zX09HpKNla8", "csv": "Score/keiba/keiba_zX09HpKNla8.csv", "video": "keiba/keiba_mp4/keiba_zX09HpKNla8.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_-QOu_ed5Uo8.mp4/events.csv", "sport": "mahjang", "name": "mahjang_-QOu_ed5Uo8", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_-QOu_ed5Uo8.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_-QOu_ed5Uo8.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_7zyWL31AUmc.mp4/events.csv", "sport": "mahjang", "name": "mahjang_7zyWL31AUmc", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_7zyWL31AUmc.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_7zyWL31AUmc.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_AFIWJoC3jik.mp4/events.csv", "sport": "mahjang", "name": "mahjang_AFIWJoC3jik", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_AFIWJoC3jik.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_AFIWJoC3jik.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_HmDTd3_1v2s.mp4/events.csv", "sport": "mahjang", "name": "mahjang_HmDTd3_1v2s", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_HmDTd3_1v2s.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_HmDTd3_1v2s.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_LdZYK209grA.mp4/events.csv", "sport": "mahjang", "name": "mahjang_LdZYK209grA", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_LdZYK209grA.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_LdZYK209grA.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_NWkfvjCvheY.mp4/events.csv", "sport": "mahjang", "name": "mahjang_NWkfvjCvheY", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_NWkfvjCvheY.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_NWkfvjCvheY.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_NyLDaa-I9pY.mp4/events.csv", "sport": "mahjang", "name": "mahjang_NyLDaa-I9pY", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_NyLDaa-I9pY.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_NyLDaa-I9pY.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_PnHg7RLonLo.mp4/events.csv", "sport": "mahjang", "name": "mahjang_PnHg7RLonLo", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_PnHg7RLonLo.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_PnHg7RLonLo.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_VQPINXhjnpY.mp4/events.csv", "sport": "mahjang", "name": "mahjang_VQPINXhjnpY", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_VQPINXhjnpY.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_VQPINXhjnpY.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_WrAhoU9KOeg.mp4/events.csv", "sport": "mahjang", "name": "mahjang_WrAhoU9KOeg", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_WrAhoU9KOeg.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_WrAhoU9KOeg.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_eTzi8XMRY1U.mp4/events.csv", "sport": "mahjang", "name": "mahjang_eTzi8XMRY1U", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_eTzi8XMRY1U.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_eTzi8XMRY1U.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_jar6OJ2GC4w.mp4/events.csv", "sport": "mahjang", "name": "mahjang_jar6OJ2GC4w", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_jar6OJ2GC4w.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_jar6OJ2GC4w.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_lS6luKuJoEg.mp4/events.csv", "sport": "mahjang", "name": "mahjang_lS6luKuJoEg", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_lS6luKuJoEg.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_lS6luKuJoEg.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_mzhslbVuTBY.mp4/events.csv", "sport": "mahjang", "name": "mahjang_mzhslbVuTBY", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_mzhslbVuTBY.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_mzhslbVuTBY.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_sZGN-1XitBU.mp4/events.csv", "sport": "mahjang", "name": "mahjang_sZGN-1XitBU", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_sZGN-1XitBU.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_sZGN-1XitBU.mp4"}, {"id": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_wb3J8Qm_Z_I.mp4/events.csv", "sport": "mahjang", "name": "mahjang_wb3J8Qm_Z_I", "csv": "Score/mahjang/mahjang_gemma4_ranking_events/mahjang_wb3J8Qm_Z_I.mp4/events.csv", "video": "mahjang/mahjang_mp4/mahjang_wb3J8Qm_Z_I.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_1sGEBrvnrr8_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_1sGEBrvnrr8", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_1sGEBrvnrr8_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_1sGEBrvnrr8.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_2zWXD74tj2I_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_2zWXD74tj2I", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_2zWXD74tj2I_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_2zWXD74tj2I.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_BvMfmAxMHj4_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_BvMfmAxMHj4", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_BvMfmAxMHj4_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_BvMfmAxMHj4.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_QTdC4j5Ne1k_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_QTdC4j5Ne1k", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_QTdC4j5Ne1k_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_QTdC4j5Ne1k.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_Ym3ZP7Id06A_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_Ym3ZP7Id06A", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_Ym3ZP7Id06A_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_Ym3ZP7Id06A.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_ay4IkVJukIY_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_ay4IkVJukIY", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_ay4IkVJukIY_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_ay4IkVJukIY.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_bBuHbJ5GDvg_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_bBuHbJ5GDvg", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_bBuHbJ5GDvg_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_bBuHbJ5GDvg.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_bL0NBUA2bCI_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_bL0NBUA2bCI", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_bL0NBUA2bCI_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_bL0NBUA2bCI.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_eJhaF2WVe_0_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_eJhaF2WVe_0", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_eJhaF2WVe_0_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_eJhaF2WVe_0.mp4"}, {"id": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_kgjxEPZ0vJg_gemma4_score_rate_cleaned.csv", "sport": "shadowverse", "name": "shadowverse_kgjxEPZ0vJg", "csv": "Score/shadowverse/shadowverse_gemma4_score_cleaned_csv/shadowverse_kgjxEPZ0vJg_gemma4_score_rate_cleaned.csv", "video": "shadowverse/shadowverse_mp4/shadowverse_kgjxEPZ0vJg.mp4"}, {"id": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_BFfuy_eom9k_gemma4_score_cleaned.csv", "sport": "tekken", "name": "tekken_BFfuy_eom9k", "csv": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_BFfuy_eom9k_gemma4_score_cleaned.csv", "video": "tekken/tekken_mp4/tekken_BFfuy_eom9k.mp4"}, {"id": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_H6rZP4E7daE_gemma4_score_cleaned.csv", "sport": "tekken", "name": "tekken_H6rZP4E7daE", "csv": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_H6rZP4E7daE_gemma4_score_cleaned.csv", "video": "tekken/tekken_mp4/tekken_H6rZP4E7daE.mp4"}, {"id": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_Ndwhbg9seYg_gemma4_score_cleaned.csv", "sport": "tekken", "name": "tekken_Ndwhbg9seYg", "csv": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_Ndwhbg9seYg_gemma4_score_cleaned.csv", "video": "tekken/tekken_mp4/tekken_Ndwhbg9seYg.mp4"}, {"id": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_NomOswKhs8M_gemma4_score_cleaned.csv", "sport": "tekken", "name": "tekken_NomOswKhs8M", "csv": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_NomOswKhs8M_gemma4_score_cleaned.csv", "video": "tekken/tekken_mp4/tekken_NomOswKhs8M.mp4"}, {"id": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_PEzPNTzagQY_gemma4_score_cleaned.csv", "sport": "tekken", "name": "tekken_PEzPNTzagQY", "csv": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_PEzPNTzagQY_gemma4_score_cleaned.csv", "video": "tekken/tekken_mp4/tekken_PEzPNTzagQY.mp4"}, {"id": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_oELZ3v_jAw0_gemma4_score_cleaned.csv", "sport": "tekken", "name": "tekken_oELZ3v_jAw0", "csv": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_oELZ3v_jAw0_gemma4_score_cleaned.csv", "video": "tekken/tekken_mp4/tekken_oELZ3v_jAw0.mp4"}, {"id": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_syX8ZsyHoBg_gemma4_score_cleaned.csv", "sport": "tekken", "name": "tekken_syX8ZsyHoBg", "csv": "Score/tekken/tekken_gemma4_score_cleaned_csv/tekken_syX8ZsyHoBg_gemma4_score_cleaned.csv", "video": "tekken/tekken_mp4/tekken_syX8ZsyHoBg.mp4"}, {"id": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_2s1607yFxVk.csv", "sport": "valorant", "name": "valorant_2s1607yFxVk", "csv": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_2s1607yFxVk.csv", "video": "valorant/valorant_mp4/valorant_2s1607yFxVk.mp4"}, {"id": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_8Obz4oOgMeg.csv", "sport": "valorant", "name": "valorant_8Obz4oOgMeg", "csv": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_8Obz4oOgMeg.csv", "video": "valorant/valorant_mp4/valorant_8Obz4oOgMeg.mp4"}, {"id": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_cTH_xcnjwIo.csv", "sport": "valorant", "name": "valorant_cTH_xcnjwIo", "csv": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_cTH_xcnjwIo.csv", "video": "valorant/valorant_mp4/valorant_cTH_xcnjwIo.mp4"}, {"id": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_w10YeCDj3Zk.csv", "sport": "valorant", "name": "valorant_w10YeCDj3Zk", "csv": "Score/valorant/valorant_gemma4_score_cleaned_csv/valorant_w10YeCDj3Zk.csv", "video": "valorant/valorant_mp4/valorant_w10YeCDj3Zk.mp4"}];
+</script>
+<script>
+'use strict';
+// Common time model. Source CSV rows are retained for inspection.
+window.ViewerCore = (() => {
+  const missing = value => value == null || /^(|nan|null|none)$/i.test(String(value).trim());
+  function number(value) {
+    if (missing(value)) return null;
+    const text = String(value).trim();
+    if (/^\d+(?::\d+(?:\.\d+)?){1,2}$/.test(text)) {
+      return text.split(':').reduce((total, part) => total * 60 + Number(part), 0);
+    }
+    const n = Number(text);
+    return Number.isFinite(n) ? n : null;
+  }
+  function parseCSV(text) {
+    const data = []; let row = [], field = '', quoted = false;
+    text = text.replace(/^\uFEFF/, '');
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (c === '"') {
+        if (quoted && text[i + 1] === '"') { field += '"'; i++; }
+        else quoted = !quoted;
+      } else if (c === ',' && !quoted) { row.push(field); field = ''; }
+      else if ((c === '\r' || c === '\n') && !quoted) {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); if (row.some(v => v.trim())) data.push(row);
+        row = []; field = '';
+      } else field += c;
+    }
+    if (quoted) throw new Error('CSVの引用符が閉じられていません。');
+    row.push(field); if (row.some(v => v.trim())) data.push(row);
+    const columns = (data.shift() || []).map(v => v.trim());
+    if (!columns.length || new Set(columns).size !== columns.length) throw new Error('CSVの列名が空か重複しています。');
+    const warnings = [];
+    const rows = data.map((values, i) => {
+      if (values.length > columns.length) throw new Error(`CSV ${i + 2}行目の列数が多すぎます。`);
+      if (values.length < columns.length) warnings.push(`CSV ${i + 2}行目の不足列を空欄として表示します。`);
+      return Object.fromEntries(columns.map((key, j) => [key, values[j] || '']));
+    });
+    return {columns, rows, warnings};
+  }
+  function normalize(data) {
+    const {columns, rows} = data;
+    const has = key => columns.includes(key);
+    const items = [], ranges = [], warnings = [...(data.warnings || [])];
+    const timeKey = ['video_time_sec', 'time_sec'].find(has);
+    const intervalKeys = [['video_start_sec', 'video_end_sec'], ['start_time', 'end_time'],
+      ['game_start_sec', 'game_end_sec'], ['start', 'end']].find(keys => keys.every(has));
+    const scale = data.timeScale || 1;
+    const at = v => { const n = number(v); return n === null ? null : n * scale; };
+    const add = (rowIndex, from, to, inclusive, observed, label) => {
+      if (from === null || to === null || from < 0 || to < from) {
+        warnings.push(`CSV ${rowIndex + 2}行目の時刻が不正で、同期対象から除外しました。`); return;
+      }
+      items.push({rowIndex, from, to, inclusive, observed, label});
+    };
+    let rule;
+    if (intervalKeys) {
+      rule = '区間型：開始以上・終了未満の行をすべて表示';
+      rows.forEach((r, i) => {
+        const start = at(r[intervalKeys[0]]), end = at(r[intervalKeys[1]]);
+        add(i, start, end, false, start, `区間 ${i + 1}`);
+      });
+    } else if (timeKey && has('score_phase') && has('segment_start_sec') && has('segment_end_sec')) {
+      rule = '変更前・変更後：区間開始〜イベント直前はscore_before、イベント時刻〜区間終了未満はscore_after';
+      rows.forEach((r, i) => {
+        const start = at(r.segment_start_sec), end = at(r.segment_end_sec), event = at(r[timeKey]);
+        if (start === null || end === null || event === null || event < start || event > end) {
+          warnings.push(`CSV ${i + 2}行目のイベント時刻が区間に収まりません。`); return;
+        }
+        if (!['score_before', 'score_after'].includes(r.score_phase)) {
+          warnings.push(`CSV ${i + 2}行目のscore_phaseが不明です。`); return;
+        }
+        add(i, r.score_phase === 'score_before' ? start : event,
+          r.score_phase === 'score_before' ? event : end, false, event,
+          `game ${r.game_id} / segment ${r.segment_id}`);
+      });
+    } else if (timeKey) {
+      rule = '観測型：同じ区間内の直前の値を保持。同時刻の複数行はまとめて表示';
+      const groups = new Map(); let quarterRun = 0, previousQuarter;
+      rows.forEach((r, i) => {
+        const time = at(r[timeKey]);
+        if (time === null || time < 0) { warnings.push(`CSV ${i + 2}行目の観測時刻が不正です。`); return; }
+        if (has('quarter') && r.quarter !== previousQuarter) { quarterRun++; previousQuarter = r.quarter; }
+        const key = JSON.stringify([r.game_id || '', r.segment_id || '', has('quarter') ? quarterRun : '',
+          r.segment_start_sec || '', r.segment_end_sec || '']);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push({r, i, time});
+      });
+      for (const group of groups.values()) {
+        group.sort((a, b) => a.time - b.time || a.i - b.i);
+        const first = group[0], last = group[group.length - 1];
+        const candidate = (data.sport === 'shadowverse' ? [] : data.bounds || []).find(b => number(b.id) === number(first.r.game_id) && !missing(first.r.game_id));
+        const hasExplicit = has('segment_start_sec') && has('segment_end_sec');
+        const rawStart = at(first.r.segment_start_sec), rawEnd = at(first.r.segment_end_sec);
+        const explicit = hasExplicit && rawStart !== null && rawEnd !== null && rawStart >= 0 && rawEnd >= rawStart;
+        const bound = candidate && at(candidate.start) !== null && at(candidate.end) !== null &&
+          at(candidate.start) >= 0 && at(candidate.end) >= at(candidate.start) ? candidate : null;
+        if (hasExplicit && !explicit) warnings.push(`CSV ${first.i + 2}行目からの区間端が不足・不正です。${bound ? '別の区間CSV' : '最初〜最後の観測範囲'}で表示します。`);
+        const start = explicit ? rawStart : bound ? at(bound.start) : first.time;
+        const end = explicit ? rawEnd : bound ? at(bound.end) : last.time;
+        const label = has('quarter') ? `Q${first.r.quarter}` :
+          [first.r.game_id ? `game ${first.r.game_id}` : '', first.r.segment_id ? `segment ${first.r.segment_id}` : ''].filter(Boolean).join(' / ') || '観測区間';
+        // Compute the next distinct timestamp once for every simultaneous batch.
+        for (let j = 0; j < group.length;) {
+          let next = j + 1;
+          while (next < group.length && group[next].time === group[j].time) next++;
+          for (let k = j; k < next; k++) {
+            const sample = group[k], from = start === null ? null : Math.max(start, sample.time);
+            const to = end === null ? null : Math.min(end, next < group.length ? group[next].time : end);
+            if (from !== null && to !== null && from > to) continue;
+            add(sample.i, from, to, next === group.length && !explicit && !bound, sample.time, label);
+          }
+          j = next;
+        }
+      }
+      rule += has('quarter') ? '。Qの最初〜最後の観測を有効区間にし、Q間は区間外' :
+        '。明示区間がない場合は各game/segmentの最初〜最後の観測が有効区間';
+      if (data.sport === 'valorant') rule += '。VALORANTのgame_idはマップ単位です。元のラウンド区間CSVのIDとは対応付けません';
+      if (data.sport === 'shadowverse') rule += '。Shadowverseは同一game_idの最初〜最後の観測を有効区間とし、ゲーム間は区間外です';
+    } else if (rows.length) throw new Error('時刻列を認識できません。video_time_sec、開始・終了時刻などが必要です。');
+    else rule = 'CSV未登録：動画のみ再生できます';
+    items.sort((a, b) => a.from - b.from || a.rowIndex - b.rowIndex);
+    const rangeMap = new Map();
+    items.forEach(item => {
+      const key = item.label;
+      if (!rangeMap.has(key)) rangeMap.set(key, {label: key, from: item.from, to: item.to});
+      const range = rangeMap.get(key); range.from = Math.min(range.from, item.from); range.to = Math.max(range.to, item.to);
+    });
+    ranges.push(...rangeMap.values());
+    const times = [...new Set(items.map(item => item.from))].sort((a, b) => a - b);
+    const rowTimes = new Map(items.map(item => [item.rowIndex, item.from]));
+    return {items, times, rowTimes, ranges, warnings, rule, columns, rows};
+  }
+  function activeAt(model, time) {
+    return model.items.filter(item => time >= item.from && (time < item.to || (item.inclusive && time === item.to)));
+  }
+  return {missing, number, parseCSV, normalize, activeAt};
+})();
+
+</script>
+<script>
+'use strict';
+window.VideoGraphs = (() => {
+  const NS = 'http://www.w3.org/2000/svg', $ = id => document.getElementById(id);
+  const colors = ['#85e0cb','#ffbe76','#82b9ff','#ed9bdb','#c5d875','#c5a7ff','#ff8c8c','#8ed1ed'];
+  const judoLabels = {white_ippon:'white 一本',blue_ippon:'blue 一本',
+    white_wazaari:'white 技あり',blue_wazaari:'blue 技あり',white_shido:'white 指導',blue_shido:'blue 指導'};
+  let model, data, api, metrics = [], selected = new Set(), domain = [0,1], fullDomain = [0,1];
+  let views = [], currentTime = 0, currentRows = new Set(), plotRanges = [];
+  function svg(tag, attrs = {}, text) {
+    const element = document.createElementNS(NS, tag);
+    for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+  function metricValue(row, key) {
+    const value = row[key];
+    if (['1st','2nd','3rd','runner_on_first','runner_on_second','runner_on_third'].includes(key)) {
+      if (/^true$/i.test(value)) return 1;
+      if (/^false$/i.test(value)) return 0;
+    }
+    return window.ViewerCore.number(value);
+  }
+  function kind(key) {
+    const judo = key.match(/^(white|blue)_(ippon|wazaari|shido)$/);
+    if (judo) return 'judo_' + judo[2];
+    if (/rate|probability/.test(key)) return 'rate';
+    if (/score$/.test(key)) return 'score';
+    if (/_points$/.test(key)) return 'points';
+    if (/gold$/.test(key)) return 'gold';
+    return key;
+  }
+  function discover() {
+    return model.columns.filter(key =>
+      !/(^|_)(id|time|sec|start|end|frames)(_|$)/i.test(key) && !['source_lines','__extra_columns'].includes(key) &&
+      model.rows.some(row => metricValue(row, key) !== null)
+    ).map(key => ({key, label: api.labels[key] || judoLabels[key] || key, kind: kind(key)}));
+  }
+  function validItems() { return model.items.filter(item => item.to > item.from || item.inclusive); }
+  function inningRanges(items) {
+    if (!model.columns.includes('inning')) return [];
+    const whole = new Map(), halves = new Map();
+    function include(map, key, label, item) {
+      if (!map.has(key)) map.set(key, {label,from:item.from,to:item.from});
+      const range = map.get(key);
+      range.from = Math.min(range.from,item.from); range.to = Math.max(range.to,item.from);
+    }
+    for (const item of items) {
+      const row = model.rows[item.rowIndex], inning = window.ViewerCore.number(row.inning);
+      if (!Number.isInteger(inning) || inning < 1) continue;
+      const game = row.game_id || '', prefix = game ? `game ${game} / ` : '';
+      include(whole,JSON.stringify([game,inning]),`${prefix}${inning}回（全体）`,item);
+      const half = String(row.inning_half || '').trim().toLowerCase();
+      const halfLabel = {top:'表',bottom:'裏','表':'表','裏':'裏'}[half];
+      if (halfLabel) include(halves,JSON.stringify([game,inning,halfLabel]),`${prefix}${inning}回${halfLabel}`,item);
+    }
+    return [...whole.values()].map(range=>({...range,group:'イニング全体'}))
+      .concat([...halves.values()].map(range=>({...range,group:'イニングの表・裏'})));
+  }
+  function install(incomingModel, incomingData, incomingAPI) {
+    model = incomingModel; data = incomingData; api = incomingAPI;
+    metrics = discover();
+    const preferred = metrics.filter(metric => ['score','rate','points','gold','squads_left','chips_bb','round_number','honba'].includes(metric.kind));
+    selected = new Set((preferred.length ? preferred : metrics).map(metric => metric.key));
+    if (!metrics.length && model.rows.length) {
+      metrics = [{key:'__events', label:'イベント・区間', kind:'events'}]; selected.add('__events');
+    }
+    const items = validItems();
+    fullDomain = items.length ? [Math.min(...items.map(item => item.from)), Math.max(...items.map(item => item.to))] : [0,1];
+    if (fullDomain[1] <= fullDomain[0]) fullDomain[1] = fullDomain[0] + 1;
+    domain = fullDomain.slice();
+    $('plot-metrics').replaceChildren();
+    const legend = document.createElement('legend'); legend.textContent = '表示する項目'; $('plot-metrics').append(legend);
+    metrics.forEach(metric => {
+      const label = document.createElement('label'), checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.checked = selected.has(metric.key); checkbox.value = metric.key;
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) selected.add(metric.key); else selected.delete(metric.key);
+        draw();
+      });
+      label.append(checkbox, document.createTextNode(metric.label)); $('plot-metrics').append(label);
+    });
+    $('plot-range').replaceChildren();
+    const all = document.createElement('option'); all.value = 'all'; all.textContent = '全体'; $('plot-range').append(all);
+    plotRanges = [...model.ranges, ...inningRanges(items)];
+    const optionGroups = new Map();
+    plotRanges.forEach((range, index) => {
+      const option = document.createElement('option'); option.value = String(index);
+      option.textContent = `${range.label} (${api.clock(range.from)}〜${api.clock(range.to)})`;
+      if (range.group) {
+        if (!optionGroups.has(range.group)) {
+          const group = document.createElement('optgroup'); group.label = range.group;
+          optionGroups.set(range.group,group); $('plot-range').append(group);
+        }
+        optionGroups.get(range.group).append(option);
+      } else $('plot-range').append(option);
+    });
+    $('plot-readout').textContent = '点にカーソルを合わせると時刻と値を確認できます。';
+    syncInputs(); draw();
+  }
+  function syncInputs() {
+    $('plot-start').value = domain[0].toFixed(3); $('plot-end').value = domain[1].toFixed(3);
+  }
+  function setDomain(start, end) {
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) {
+      $('plot-readout').textContent = '表示範囲は、0以上の開始時刻と、それより大きい終了時刻を指定してください。'; return;
+    }
+    domain = [start,end]; syncInputs(); draw();
+  }
+  function buildSeries(group) {
+    const series = new Map();
+    for (const metric of group) {
+      for (const item of validItems()) {
+        const row = model.rows[item.rowIndex], player = row.name || '';
+        const key = JSON.stringify([metric.key,player]);
+        if (!series.has(key)) series.set(key, {key, metric, label: metric.label + (player ? ` · ${player}` : ''), points:[]});
+        series.get(key).points.push({x:item.from, y:metric.key === '__events' ? 1 : metricValue(row,metric.key),
+          rowIndex:item.rowIndex, to:item.to, partition:item.label, item, row});
+      }
+    }
+    for (const value of series.values()) value.points.sort((a,b) => a.x - b.x || a.rowIndex - b.rowIndex);
+    return [...series.values()];
+  }
+  function draw() {
+    $('plot-panels').replaceChildren(); views = [];
+    const groups = new Map();
+    for (const metric of metrics.filter(metric => selected.has(metric.key))) {
+      if (!groups.has(metric.kind)) groups.set(metric.kind, []);
+      groups.get(metric.kind).push(metric);
+    }
+    if (!groups.size) {
+      const message = document.createElement('p');
+      message.textContent = model.rows.length ? '表示する項目を選択してください。' : 'CSVを読み込むとグラフが表示されます。';
+      $('plot-panels').append(message); return;
+    }
+    const names = {score:'スコア推移',rate:'勝率・投票率 (%)',points:'点数推移',gold:'ゴールド推移',events:'イベント・区間',
+      judo_ippon:'一本',judo_wazaari:'技あり',judo_shido:'指導',round_number:'局の推移',honba:'本場の推移'};
+    for (const [groupKind, group] of groups) {
+      drawPanel(names[groupKind] || group[0].label, groupKind, buildSeries(group));
+    }
+    update(currentTime, [...currentRows].map(rowIndex => ({rowIndex})));
+  }
+  function valueAxis(values, integerOnly) {
+    let min = values.length ? Math.min(...values) : 0;
+    let max = values.length ? Math.max(...values) : 1;
+    if (min === max) {
+      const pad = integerOnly ? 1 : min === 0 ? 1 : 10 ** Math.floor(Math.log10(Math.abs(min))) / 10;
+      min = min >= 0 ? Math.max(0, min - pad) : min - pad;
+      max += pad;
+    }
+    const target = (max - min) / 5;
+    const magnitude = 10 ** Math.floor(Math.log10(target));
+    const fraction = target / magnitude;
+    let step = (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10) * magnitude;
+    if (integerOnly) step = Math.max(1, step);
+    // Round bounds to the tick step, instead of adding fractional padding.
+    const first = Math.floor(Number((min / step).toPrecision(12)));
+    const last = Math.ceil(Number((max / step).toPrecision(12)));
+    const clean = value => Number(value.toPrecision(12));
+    return {min:clean(first * step), max:clean(last * step),
+      ticks:Array.from({length:last-first+1}, (_,i) => clean((first+i)*step))};
+  }
+  function drawPanel(title, groupKind, series) {
+    const panel = document.createElement('section'); panel.className = 'plot-panel';
+    const heading = document.createElement('h3'); heading.textContent = title; panel.append(heading);
+    const legend = document.createElement('div'); legend.className = 'plot-legend';
+    const width = 1000, height = 320, left = 76, right = 24, top = 20, bottom = 48;
+    const plotWidth = width-left-right, plotHeight = height-top-bottom;
+    const x = time => left + (time-domain[0])/(domain[1]-domain[0])*plotWidth;
+    const visible = series.flatMap(s => s.points.filter(p => p.y !== null && p.x <= domain[1] && p.to >= domain[0]));
+    const integerOnly = series.every(s => s.points.every(p => p.y === null || Number.isInteger(p.y)));
+    const axis = groupKind === 'events' ? {min:0,max:2,ticks:[0,1,2]} : valueAxis(visible.map(p => p.y), integerOnly);
+    const {min,max} = axis;
+    const y = value => top + plotHeight-(value-min)/(max-min)*plotHeight;
+    const root = svg('svg', {viewBox:`0 0 ${width} ${height}`, role:'group', 'aria-label':title+'。点を選択すると動画へ移動します。'});
+    root.append(svg('rect',{x:left,y:top,width:plotWidth,height:plotHeight,fill:'#13202c'}));
+    for(const value of axis.ticks) {
+      root.append(svg('line',{x1:left,x2:width-right,y1:y(value),y2:y(value),stroke:'#304356'}));
+      if(groupKind!=='events')root.append(svg('text',{x:left-10,y:y(value)+4,'text-anchor':'end',class:'axis-label y-axis-label','data-value':value},value.toLocaleString(undefined,{maximumFractionDigits:12})));
+    }
+    for(let i=0;i<=5;i++) {
+      const time=domain[0]+(domain[1]-domain[0])*i/5;
+      root.append(svg('line',{x1:x(time),x2:x(time),y1:top,y2:top+plotHeight,stroke:'#263848'}));
+      root.append(svg('text',{x:x(time),y:height-20,'text-anchor':i===0?'start':i===5?'end':'middle',class:'axis-label'},api.clock(time).replace(/\.\d+$/,'')));
+    }
+    root.append(svg('text',{x:width/2,y:height-2,'text-anchor':'middle',class:'axis-label'},'CSV参照時刻 (分:秒)'));
+    const pointLayer = svg('g'); const circles = [];
+    series.forEach((s, seriesIndex) => {
+      const color=/^white_/.test(s.metric.key)?'#edf5fc':/^blue_/.test(s.metric.key)?'#82b9ff':colors[seriesIndex%colors.length], key=document.createElement('span');
+      key.textContent=s.label; key.style.setProperty('--series-color',color); legend.append(key);
+      let previous=null, path='';
+      for(const point of s.points) {
+        const numeric=point.y!==null;
+        const clippedStart=Math.max(domain[0],point.x),clippedEnd=Math.min(domain[1],point.to);
+        const inRange=numeric&&clippedStart<=clippedEnd&&point.x<=domain[1]&&point.to>=domain[0];
+        if(!inRange){previous=null;continue;}
+        const connected=previous&&previous.partition===point.partition&&previous.to>=point.x&&previous.x<=point.x;
+        const isStep=groupKind!=='rate';
+        if(isStep) {
+          // Draw values only for their actual validity interval, including cropped ranges.
+          if(connected&&point.x>=domain[0])path+=` L${x(point.x)},${y(point.y)}`;
+          else path+=` M${x(clippedStart)},${y(point.y)}`;
+          path+=` L${x(clippedEnd)},${y(point.y)}`;
+        } else {
+          if(connected&&previous.x>=domain[0]&&point.x<=domain[1])path+=` L${x(point.x)},${y(point.y)}`;
+          else if(point.x>=domain[0]&&point.x<=domain[1])path+=` M${x(point.x)},${y(point.y)}`;
+        }
+        previous=point;
+        if(point.x<domain[0]||point.x>domain[1])continue;
+        const text=`${s.label}: ${point.y} / ${api.clock(point.x)} / CSV ${point.rowIndex+2}行目`;
+        const circle=svg('circle',{cx:x(point.x),cy:y(point.y),r:4,fill:color,stroke:'#13202c','stroke-width':1,
+          tabindex:0,role:'button','aria-label':text,class:'plot-point','data-row':point.rowIndex,'data-time':point.x,'data-metric':s.metric.key});
+        circle.append(svg('title',{},text));
+        const describe=()=>{$('plot-readout').textContent=text;};
+        const go=()=>{describe();api.seek(point.x);};
+        circle.addEventListener('mouseenter',describe);circle.addEventListener('focus',describe);
+        circle.addEventListener('click',go);
+        circle.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();go();}});
+        pointLayer.append(circle);circles.push({circle,rowIndex:point.rowIndex});
+      }
+      if(path)root.append(svg('path',{d:path,stroke:color,fill:'none','stroke-width':1.6,'pointer-events':'none',class:'plot-series','data-series':s.key}));
+    });
+    const cursor=svg('line',{x1:left,x2:left,y1:top,y2:top+plotHeight,stroke:'#fff','stroke-dasharray':'5 4','stroke-width':1.5,'pointer-events':'none',class:'plot-cursor'});
+    root.append(cursor,pointLayer);panel.append(legend,root);
+    if(!visible.length){const p=document.createElement('p');p.className='hint';p.textContent='この表示範囲に有効な数値はありません。';panel.append(p);}
+    $('plot-panels').append(panel);views.push({cursor,x,circles,previousKey:''});
+  }
+  function update(time, active) {
+    currentTime=time; currentRows=new Set(active.map(item=>item.rowIndex));
+    const key=[...currentRows].sort((a,b)=>a-b).join(',');
+    for(const view of views) {
+      const visible=time>=domain[0]&&time<=domain[1];view.cursor.style.display=visible?'':'none';
+      if(visible){view.cursor.setAttribute('x1',view.x(time));view.cursor.setAttribute('x2',view.x(time));}
+      if(key!==view.previousKey){
+        view.previousKey=key;
+        for(const point of view.circles)point.circle.classList.toggle('selected',currentRows.has(point.rowIndex));
+      }
+    }
+  }
+  $('plot-range').addEventListener('change',()=>{
+    const range=$('plot-range').value==='all'?null:plotRanges[Number($('plot-range').value)];
+    if(range){setDomain(range.from,range.to>range.from?range.to:range.from+1);}else setDomain(...fullDomain);
+  });
+  $('plot-apply').addEventListener('click',()=>{ $('plot-range').value='all';setDomain(Number($('plot-start').value),Number($('plot-end').value)); });
+  $('plot-reset').addEventListener('click',()=>{ $('plot-range').value='all';setDomain(...fullDomain); });
+  return {install,update};
+})();
+
+</script>
+<script>
+'use strict';
+// Adapt YouTube's IFrame API to the existing viewer's video interface.
+window.youtubeVideo = new class extends EventTarget {
+  constructor() {
+    super();
+    this.player = null;
+    this.ready = false;
+    this.id = null;
+    this.rate = 1;
+    this.src = '';
+    setInterval(() => {
+      if (this.ready) this.dispatchEvent(new Event('timeupdate'));
+    }, 100);
+  }
+  get currentTime() { return this.ready ? this.player.getCurrentTime() || 0 : 0; }
+  set currentTime(time) {
+    if (this.ready) this.player.seekTo(time, true);
+  }
+  get duration() { return this.ready ? this.player.getDuration() || NaN : NaN; }
+  get paused() { return !this.ready || this.player.getPlayerState() !== 1; }
+  get playbackRate() { return this.rate; }
+  set playbackRate(rate) {
+    this.rate = rate;
+    if (this.ready) this.player.setPlaybackRate(rate);
+  }
+  pause() { if (this.ready) this.player.pauseVideo(); }
+  removeAttribute() { this.src = ''; }
+  load() {
+    const name = decodeURIComponent(this.src).split('/').at(-1).replace(/\.mp4$/i, '');
+    // Match from the end: both genre names and video IDs can contain underscores.
+    const id = name.match(/(?:^|_)([A-Za-z0-9_-]{11})$/)?.[1];
+    this.id = id || null;
+    const link = document.getElementById('youtube-link');
+    link.hidden = !id;
+    if (id) link.href = 'https://www.youtube.com/watch?v=' + id;
+    else link.removeAttribute('href');
+    const hint = document.getElementById('youtube-status');
+    hint.textContent = id ? '埋め込みで再生できない場合は「YouTubeで開く」を使用してください。' :
+      '動画名は「ジャンル名_11文字のYouTube動画ID」で指定してください。';
+    if (this.player) { this.player.destroy(); this.player = null; }
+    this.ready = false;
+    const host = document.getElementById('youtube-host');
+    host.replaceChildren();
+    const target = document.createElement('div'); target.id = 'youtube-player'; host.append(target);
+    this.mount();
+  }
+  mount() {
+    if (!this.id || !window.YT?.Player || this.player) return;
+    if (location.protocol === 'file:') {
+      document.getElementById('youtube-status').textContent =
+        '埋め込み再生と同期にはローカルサーバーが必要です。python3 Score/serve_viewer.py を起動し、http://127.0.0.1:8000/Score/youtube_graph_viewer.html を開いてください。YouTubeリンクはそのまま使えます。';
+      return;
+    }
+    this.player = new YT.Player('youtube-player', {
+      videoId: this.id,
+      playerVars: {origin: location.origin, playsinline: 1, rel: 0},
+      events: {
+        onReady: () => {
+          this.ready = true;
+          this.playbackRate = this.rate;
+          this.dispatchEvent(new Event('loadedmetadata'));
+        },
+        onStateChange: () => this.dispatchEvent(new Event('timeupdate')),
+        onError: event => {
+          const reasons = {
+            2: '動画IDが不正です。動画ファイル名を確認してください。',
+            5: 'ブラウザのプレーヤーで再生できません。',
+            100: '動画が削除されたか、非公開になっている可能性があります。',
+            101: '動画の所有者が外部サイトでの埋め込み再生を許可していません。この制限はビューア側では解除できません。',
+            150: '動画の所有者が外部サイトでの埋め込み再生を許可していません。この制限はビューア側では解除できません。',
+            153: 'YouTubeに参照元を送信できません。ローカルサーバー経由で開き、ブラウザの参照元設定を確認してください。',
+          };
+          document.getElementById('youtube-status').textContent =
+            `YouTube埋め込み再生エラー (${event.data})。${reasons[event.data] || '埋め込み動画を再生できません。'}「YouTubeで開く」から視聴してください。別タブの再生時刻は同期されません。`;
+        },
+      },
+    });
+  }
+}();
+window.onYouTubeIframeAPIReady = () => window.youtubeVideo.mount();
+const youtubeScript = document.createElement('script');
+youtubeScript.src = 'https://www.youtube.com/iframe_api';
+youtubeScript.onerror = () => {
+  document.getElementById('youtube-status').textContent = 'YouTubeプレーヤーを取得できません。「YouTubeで開く」を使用してください。';
+};
+document.head.append(youtubeScript);
+
+</script>
+<script>
+'use strict';
+const C = window.ViewerCore, $ = id => document.getElementById(id), video = window.youtubeVideo;
+const labels = {
+  top_team:'上側チーム', bottom_team:'下側チーム', left_team:'左チーム', right_team:'右チーム',
+  top_score:'上側スコア', bottom_score:'下側スコア', left_score:'左スコア', right_score:'右スコア',
+  top_vote_rate:'上側投票率 (%)', bottom_vote_rate:'下側投票率 (%)',
+  top_win_rate:'上側勝率 (%)', bottom_win_rate:'下側勝率 (%)', win_rate:'勝率 (%)',
+  quarter:'クォーター', game_time_sec:'試合時計', inning:'イニング', inning_half:'表・裏',
+  outs:'アウト', '1st':'一塁', '2nd':'二塁', '3rd':'三塁',
+  runner_on_first:'一塁', runner_on_second:'二塁', runner_on_third:'三塁',
+  east_points:'東家点数', south_points:'南家点数', west_points:'西家点数', north_points:'北家点数',
+  round_wind:'場風', round_number:'局', honba:'本場', squads_left:'残り部隊数',
+  blue_gold:'青ゴールド', red_gold:'赤ゴールド', name:'プレイヤー', chips_bb:'チップ (BB)',
+  game_id:'ゲームID', segment_id:'区間ID', match_id:'試合ID', score_phase:'変更前・後',
+  record:'元の記録', event:'イベント', content:'内容', status:'状態', transcript:'文字起こし', notes:'注記',
+};
+let entries = [], data = {columns:[], rows:[]}, model = C.normalize(data), page = 0;
+let active = [], renderedKey = '', version = 0, blobURL = null, localCSV = false;
+const pageSize = 100;
+function clock(time) {
+  if (!Number.isFinite(time)) return '—';
+  const ms = Math.round(Math.abs(time) * 1000);
+  return (time < 0 ? '−' : '') + String(Math.floor(ms / 60000)).padStart(2,'0') + ':' +
+    String(Math.floor(ms / 1000) % 60).padStart(2,'0') + '.' + String(ms % 1000).padStart(3,'0');
+}
+const offset = () => Number($('offset').value) || 0;
+function status(text) { $('status').textContent = text; }
+function shown(value) { return C.missing(value) ? '未取得' : String(value); }
+function pathText() {
+  $('paths').replaceChildren();
+  for (const text of [`動画: ${$('youtube-name').value || '未選択'}`, `CSV: ${data.csv || '未登録'}`]) {
+    const line = document.createElement('div'); line.textContent = text; $('paths').append(line);
+  }
+}
+function renderTable() {
+  if ($('rows').closest('[hidden]')) return;
+  $('head').replaceChildren(); const header = document.createElement('tr');
+  for (const col of ['CSV行', ...model.columns]) { const th = document.createElement('th'); th.textContent = col; header.append(th); }
+  $('head').append(header); $('rows').replaceChildren();
+  const selected = new Set(active.map(item => item.rowIndex));
+  const fragment = document.createDocumentFragment();
+  for (let i = page * pageSize; i < Math.min(model.rows.length, (page + 1) * pageSize); i++) {
+    const row = document.createElement('tr'); row.tabIndex = 0; row.dataset.index = i;
+    if (selected.has(i)) { row.className = 'active'; row.setAttribute('aria-current','true'); }
+    for (const value of [i + 2, ...model.columns.map(col => model.rows[i][col])]) {
+      const cell = document.createElement('td'); cell.textContent = shown(value); cell.title = cell.textContent; row.append(cell);
+    }
+    const go = () => {
+      const time = model.rowTimes.get(i);
+      if (time === undefined) status('この行は時刻が不正、または有効区間外のため移動できません。');
+      else seek(time);
+    };
+    row.addEventListener('click', go);
+    row.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); go(); } });
+    fragment.append(row);
+  }
+  $('rows').append(fragment);
+  const pages = Math.max(1, Math.ceil(model.rows.length / pageSize));
+  $('page-label').textContent = `${page + 1} / ${pages} ページ（100行ずつ）`;
+  $('page-prev').disabled = page === 0; $('page-next').disabled = page >= pages - 1;
+}
+function renderCards() {
+  $('cards').replaceChildren();
+  if (!active.length) {
+    const message = document.createElement('p');
+    message.textContent = model.rows.length ? 'この時刻に有効な付与情報はありません。' : 'CSVが未登録です。手元のCSVを指定することもできます。';
+    $('cards').append(message); return;
+  }
+  for (const item of active) {
+    const row = model.rows[item.rowIndex], card = document.createElement('article'); card.className = 'card';
+    const heading = document.createElement('h3'); heading.textContent = `${item.label} · CSV ${item.rowIndex + 2}行目`;
+    const fields = document.createElement('dl');
+    for (const col of model.columns) {
+      const dt = document.createElement('dt'); dt.textContent = labels[col] || col; dt.title = col;
+      const dd = document.createElement('dd'); dd.textContent = shown(row[col]); fields.append(dt, dd);
+    }
+    const observed = document.createElement('p'); observed.className = 'observed';
+    observed.textContent = `${row.score_phase ? 'イベント時刻' : 'CSV観測・開始時刻'}: ${clock(item.observed)} / 適用: ${clock(item.from)} 〜 ${clock(item.to)}`;
+    card.append(heading, fields, observed); $('cards').append(card);
+  }
+}
+function update(force = false) {
+  const time = video.currentTime + offset();
+  $('video-time').textContent = clock(video.currentTime); $('csv-time').textContent = clock(time);
+  active = C.activeAt(model, time);
+  const key = active.map(item => item.rowIndex).join(',');
+  $('badge').textContent = active.length ? `有効な情報 ${active.length}件` : model.rows.length ? '区間外' : 'CSV未登録';
+  $('badge').classList.toggle('outside', !active.length);
+  $('first').disabled = !model.times.length;
+  $('previous').disabled = !model.times.some(t => t < time - 0.000001);
+  $('next').disabled = !model.times.some(t => t > time + 0.000001);
+  if (force || key !== renderedKey) {
+    renderedKey = key;
+    if ($('follow').checked && active.length) page = Math.floor(active[0].rowIndex / pageSize);
+    renderCards(); renderTable();
+  }
+  window.VideoGraphs.update(time, active);
+}
+function install(incoming) {
+  const nextModel = C.normalize(incoming); // Validate before replacing the current model.
+  data = incoming; model = nextModel; page = 0; renderedKey = '';
+  $('row-count').textContent = `${model.rows.length.toLocaleString()}行`;
+  $('rule').textContent = model.rule;
+  $('bounds-source').textContent = data.bounds_source ? `区間の参照元: ${data.bounds_source}` : '区間はCSVの明示時刻、または観測範囲から設定しています。';
+  $('ranges').replaceChildren(...model.ranges.map(range => {
+    const li = document.createElement('li'), button = document.createElement('button');
+    button.textContent = `${range.label}: ${clock(range.from)} 〜 ${clock(range.to)}`;
+    button.addEventListener('click', () => seek(range.from)); li.append(button); return li;
+  }));
+  $('warnings').textContent = model.warnings.length ? `${model.warnings.length}件の注意:\n${model.warnings.slice(0, 10).join('\n')}${model.warnings.length > 10 ? '\n…詳細は元CSVを確認してください。' : ''}` : '';
+  window.VideoGraphs.install(model, data, {seek, clock, labels});
+  pathText(); update(true);
+}
+function seek(csvTime) {
+  const time = csvTime - offset();
+  if (!Number.isFinite(video.duration)) { status('動画の読み込み完了後に移動してください。'); return; }
+  if (time < 0 || time > video.duration) { status('この時刻は動画の範囲外です。動画・補正値・時刻単位を確認してください。'); return; }
+  video.currentTime = time; update(true);
+}
+function setVideo(path) {
+  video.pause();
+  if (blobURL) { URL.revokeObjectURL(blobURL); blobURL = null; }
+  if (path) video.src = '/' + path.split('/').map(encodeURIComponent).join('/');
+  else video.removeAttribute('src');
+  video.load();
+}
+async function selectDataset() {
+  const entry = entries.find(item => item.id === $('dataset').value); if (!entry) return;
+  const token = ++version;
+  localCSV = false; $('units').value = '1'; $('units').disabled = true;
+  $('offset').value = '0'; $('csv-file').value = ''; $('youtube-name').value = entry.name;
+  install({...entry, columns:[], rows:[]}); setVideo(entry.name);
+  if (location.protocol === 'file:') {
+    status('YouTubeリンクを用意しました。CSVは「手元のCSVを指定」から選択してください。');
+    $('units').disabled = false; return;
+  }
+  status('CSVを読み込み中…');
+  try {
+    const response = await fetch('/api/viewer/data?id=' + encodeURIComponent(entry.id), {cache:'no-store'});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const incoming = await response.json(); if (token !== version) return;
+    install(incoming);
+    status(incoming.csv ? `${entry.name} — ${model.rows.length.toLocaleString()}行を読み込みました。「最初の情報へ」で移動できます。${model.warnings.length ? ' 時刻ルール欄に注意事項があります。' : ''}` : `${entry.name} — Score内のCSVが未登録です。動画は再生できます。`);
+  } catch (error) { if (token === version) status('読み込み失敗: ' + error.message); }
+}
+function fillDatasets(previous) {
+  $('dataset').replaceChildren();
+  for (const item of entries.filter(e => e.sport === $('sport').value)) {
+    const option = document.createElement('option'); option.value = item.id;
+    option.textContent = item.name + (!item.csv ? '［CSVなし］' : ''); $('dataset').append(option);
+  }
+  if ([...$('dataset').options].some(option => option.value === previous)) $('dataset').value = previous;
+  return selectDataset();
+}
+async function loadCatalog() {
+  const previousSport = $('sport').value, previousDataset = $('dataset').value;
+  entries = window.youtubeCatalog;
+  $('sport').replaceChildren();
+  for (const sport of [...new Set(entries.map(e => e.sport))]) {
+    const option = document.createElement('option'); option.value = sport;
+    option.textContent = `${sport} (${entries.filter(e => e.sport === sport).length})`;
+    $('sport').append(option);
+  }
+  if (entries.some(e => e.sport === previousSport)) $('sport').value = previousSport;
+  else if (entries.some(e => e.sport === 'Baseball')) $('sport').value = 'Baseball';
+  await fillDatasets(previousDataset);
+}
+$('sport').addEventListener('change', () => fillDatasets()); $('dataset').addEventListener('change', selectDataset);
+$('reload').addEventListener('click', loadCatalog);
+$('youtube-apply').addEventListener('click', () => {
+  const name = $('youtube-name').value.trim();
+  if (!/_([A-Za-z0-9_-]{11})(?:\.mp4)?$/i.test(name)) {
+    status('「ジャンル名_11文字のYouTube動画ID」を入力してください。'); return;
+  }
+  ++version;
+  localCSV = false; $('csv-file').value = ''; $('units').disabled = false;
+  $('offset').value = '0';
+  install({columns:[], rows:[], video:name}); setVideo(name);
+  status('動画名からYouTubeリンクを作成しました。対応するCSVを選択してください。');
+});
+$('csv-file').addEventListener('change', async event => {
+  const file = event.target.files[0]; if (!file) return;
+  const token = ++version;
+  const videoPath = data.video;
+  install({columns:[], rows:[], video:videoPath});
+  try {
+    const text = await file.text(); if (token !== version) return;
+    const parsed = C.parseCSV(text);
+    install({...parsed, csv:file.name, video:videoPath, timeScale:Number($('units').value)});
+    localCSV = true; $('units').disabled = false;
+    status(`${file.name} — ${model.rows.length.toLocaleString()}行を読み込みました。時刻単位は${$('units').selectedOptions[0].textContent}です。`);
+  } catch (error) { if (token === version) status('CSV読込失敗: ' + error.message); }
+});
+$('units').addEventListener('change', () => { if (localCSV) { install({...data, timeScale:Number($('units').value)}); } });
+$('offset').addEventListener('input', () => update(true));
+$('speed').addEventListener('change', () => { video.playbackRate = Number($('speed').value); });
+$('first').addEventListener('click', () => seek(model.times[0]));
+$('previous').addEventListener('click', () => { const t = video.currentTime + offset(); const prev = model.times.filter(x => x < t - 0.000001).at(-1); if (prev !== undefined) seek(prev); });
+$('next').addEventListener('click', () => { const next = model.times.find(x => x > video.currentTime + offset() + 0.000001); if (next !== undefined) seek(next); });
+$('page-prev').addEventListener('click', () => { page--; $('follow').checked = false; renderTable(); });
+$('page-next').addEventListener('click', () => { page++; $('follow').checked = false; renderTable(); });
+$('follow').addEventListener('change', () => update(true));
+for (const event of ['timeupdate','seeked','pause','ended']) video.addEventListener(event, () => update());
+video.addEventListener('loadedmetadata', () => { video.playbackRate = Number($('speed').value); update(); });
+video.addEventListener('error', () => status('動画を読み込めません。対応する動画を選び直すか、ブラウザが対応する形式か確認してください。'));
+let lastFrame = 0;
+function frame(time) { if (!video.paused && time - lastFrame >= 100) { update(); lastFrame = time; } requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+install(data); loadCatalog();
+
+</script>
+</body></html>
