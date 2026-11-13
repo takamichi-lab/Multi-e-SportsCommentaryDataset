@@ -497,6 +497,14 @@ window.VideoGraphs = (() => {
 </script>
 <script>
 'use strict';
+// Keep existing CSV/video filenames while correcting known source video IDs.
+window.youtubeVideoId = path => {
+  const name = decodeURIComponent(path).split('/').at(-1).replace(/\.mp4$/i, '');
+  if (name === 'Legends of Runeterra_CwgoD55dOs') return '9CwgoD55dOs';
+  // Match from the end: both genre names and video IDs can contain underscores.
+  return name.match(/(?:^|_)([A-Za-z0-9_-]{11})$/)?.[1] || null;
+};
+
 // Adapt YouTube's IFrame API to the existing viewer's video interface.
 window.youtubeVideo = new class extends EventTarget {
   constructor() {
@@ -524,9 +532,7 @@ window.youtubeVideo = new class extends EventTarget {
   pause() { if (this.ready) this.player.pauseVideo(); }
   removeAttribute() { this.src = ''; }
   load() {
-    const name = decodeURIComponent(this.src).split('/').at(-1).replace(/\.mp4$/i, '');
-    // Match from the end: both genre names and video IDs can contain underscores.
-    const id = name.match(/(?:^|_)([A-Za-z0-9_-]{11})$/)?.[1];
+    const id = window.youtubeVideoId(this.src);
     this.id = id || null;
     const link = document.getElementById('youtube-link');
     link.hidden = !id;
@@ -744,7 +750,7 @@ $('sport').addEventListener('change', () => fillDatasets()); $('dataset').addEve
 $('reload').addEventListener('click', loadCatalog);
 $('youtube-apply').addEventListener('click', () => {
   const name = $('youtube-name').value.trim();
-  if (!/_([A-Za-z0-9_-]{11})(?:\.mp4)?$/i.test(name)) {
+  if (!window.youtubeVideoId(name)) {
     status('「ジャンル名_11文字のYouTube動画ID」を入力してください。'); return;
   }
   ++version;
